@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -63,7 +64,17 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#57534E] mb-1">Şifre</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-[#57534E]">Şifre</label>
+              {!isSignUp && (
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-[#78716C] hover:text-[#3E3A36] transition font-medium"
+                >
+                  Şifremi Unuttum?
+                </Link>
+              )}
+            </div>
             <input
               type="password"
               value={password}
@@ -86,6 +97,7 @@ export default function LoginPage() {
         {/* Mod Değiştirme Butonu */}
         <div className="text-center mt-6">
           <button
+            type="button"
             onClick={() => setIsSignUp(!isSignUp)}
             className="text-sm text-[#6C635B] hover:text-[#3E3A36] font-medium transition"
           >

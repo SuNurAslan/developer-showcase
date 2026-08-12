@@ -1,99 +1,50 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
-export default function Home() {
-  const [user, setUser] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const router = useRouter()
-  const supabase = createClient()
+export default function UpdatePasswordPage() {
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const supabase = createClient();
 
-  useEffect(() => {
-    async function checkUser() {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      setLoading(false)
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const { error } = await supabase.auth.updateUser({ password });
+
+    if (error) {
+      alert("Hata: " + error.message);
+    } else {
+      alert("Şifreniz başarıyla güncellendi!");
+      router.push("/login");
     }
-    checkUser()
-  }, [supabase])
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    setUser(null)
-    router.refresh()
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center">
-        <p className="text-[#78716C] animate-pulse">Yükleniyor...</p>
-      </div>
-    )
-  }
+    setLoading(false);
+  };
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] text-[#3E3A36] flex flex-col justify-between">
-      {/* Üst Navigasyon Alanı */}
-      <header className="flex justify-between items-center px-8 py-6 border-b border-[#E8E2D5] bg-[#F4F1EA]/60 backdrop-blur-md">
-        <h2 className="text-xl font-bold tracking-tight text-[#3E3A36]">Developer Showcase</h2>
-        <div className="flex items-center gap-4">
-          {user ? (
-            <>
-              <Link
-                href="/profile"
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-[#D6CFC7] text-[#3E3A36] hover:bg-[#E8E2D5] transition shadow-sm font-medium text-sm"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-[#5C5247]">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                </svg>
-                Profilim
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#5C5247] text-white hover:bg-[#4A4137] transition shadow-sm font-medium text-sm"
-              >
-                Çıkış Yap
-              </button>
-            </>
-          ) : (
-            <Link
-              href="/login"
-              className="px-5 py-2.5 rounded-xl bg-[#5C5247] text-white hover:bg-[#4A4137] transition shadow-sm font-medium text-sm"
-            >
-              Giriş Yap / Kayıt Ol
-            </Link>
-          )}
-        </div>
-      </header>
-
-      {/* Ana İçerik */}
-      <main className="flex-1 flex flex-col items-center justify-center text-center px-4 py-16">
-        <div className="max-w-2xl bg-[#F4F1EA] p-10 rounded-3xl shadow-xl border border-[#E8E2D5]">
-          <h1 className="text-4xl font-extrabold tracking-tight text-[#3E3A36] mb-4">
-            Developer Showcase'e Hoş Geldin!
-          </h1>
-          <p className="text-lg text-[#78716C] mb-8">
-            {user ? 'Giriş işlemin başarıyla gerçekleşti. Projelerini sergilemeye başlayabilirsin.' : 'Yeteneklerini keşfettir, projelerini sergile ve diğer geliştiricilerle bağlantı kur.'}
-          </p>
-
-          {!user && (
-            <Link
-              href="/login"
-              className="inline-block px-8 py-3.5 rounded-xl bg-[#5C5247] text-white font-medium hover:bg-[#4A4137] transition shadow-md"
-            >
-              Hemen Başla
-            </Link>
-          )}
-        </div>
-      </main>
-
-      {/* Alt Bilgi */}
-      <footer className="py-6 text-center text-xs text-[#A8A29E] border-t border-[#E8E2D5]">
-        © 2026 Developer Showcase. Tüm hakları saklıdır.
-      </footer>
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <form onSubmit={handleUpdate} className="w-full max-w-md p-6 bg-white rounded shadow-md">
+        <h2 className="text-xl font-bold mb-4">Yeni Şifre Belirle</h2>
+        <input
+          type="password"
+          placeholder="Yeni şifreniz"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          className="w-full p-2 border rounded mb-4"
+        />
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-indigo-600 text-white p-2 rounded hover:bg-indigo-700"
+        >
+          {loading ? "Güncelleniyor..." : "Şifreyi Güncelle"}
+        </button>
+      </form>
     </div>
-  )
+  );
 }
