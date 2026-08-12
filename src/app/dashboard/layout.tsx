@@ -1,15 +1,23 @@
 import NavbarMenu from "@/components/NavbarMenu";
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <div className="min-h-screen relative flex flex-col bg-[#FDFBF7]">
-      {/* Sağ Üst Sabit Hamburger Menü */}
-      <header className="absolute top-4 right-4 z-50">
-        <NavbarMenu />
-      </header>
-
+    <div className="min-h-screen relative flex justify-center bg-[#FDFBF7] px-4 py-8">
+      
       {/* Sayfa İçeriği */}
-      <main className="flex-1 flex flex-col">{children}</main>
+      <main className="w-full max-w-lg">
+        {children}
+      </main>
+
+      {/* Sağ Sabit Menü */}
+      <aside className="fixed right-2 sm:right-6 top-0 bottom-0 flex items-center z-50">
+        <NavbarMenu />
+      </aside>
+
     </div>
   );
 }
