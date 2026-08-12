@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { useRouter } from 'next/navigation'
+
 export default function ProfilePage() {
   const router = useRouter()
   const supabase = createClient()
@@ -12,7 +13,10 @@ export default function ProfilePage() {
   const [fullName, setFullName] = useState('')
   const [bio, setBio] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
+  const [cvUrl, setCvUrl] = useState('')
+  
   const [uploading, setUploading] = useState(false)
+  const [cvUploading, setCvUploading] = useState(false)
 
   useEffect(() => {
     async function getProfile() {
@@ -24,12 +28,9 @@ export default function ProfilePage() {
 
         let { data, error } = await supabase
           .from('profiles')
-          .select('username, full_name, bio, avatar_url')
+          .select('username, full_name, bio, avatar_url, cv_url')
           .eq('id', user.id)
           .maybeSingle()
-          
-          console.log("Supabase'den gelen profil verisi:", data); // BURAYI EKLE
-          console.log("Oluşan hata (varsa):", error); // BURAYI EKLE
 
         if (error) {
           console.error(error)
@@ -40,6 +41,7 @@ export default function ProfilePage() {
           setFullName(data.full_name || '')
           setBio(data.bio || '')
           setAvatarUrl(data.avatar_url || '')
+          setCvUrl(data.cv_url || '')
         }
       } catch (error) {
         console.error('Profil yüklenirken hata oluştu:', error)
@@ -65,16 +67,14 @@ export default function ProfilePage() {
         full_name: fullName,
         bio,
         avatar_url: avatarUrl,
-        
+        cv_url: cvUrl,
       }
-      
 
       let { error } = await supabase.from('profiles').upsert(updates)
       if (error) throw error
+      
       alert('Profil başarıyla güncellendi!')
       router.push('/dashboard')
-      if (error) throw error
-      alert('Profil başarıyla güncellendi!')
     } catch (error: any) {
       alert('Güncelleme sırasında hata oluştu: ' + error.message)
     } finally {
@@ -112,6 +112,41 @@ export default function ProfilePage() {
     }
   }
 
+  // CV (PDF) Yükleme Fonksiyonu
+  async function uploadCv(event: React.ChangeEvent<HTMLInputElement>) {
+    try {
+      setCvUploading(true)
+
+      if (!event.target.files || event.target.files.length === 0) {
+        throw new Error('Lütfen yüklenecek bir PDF dosyası seçin.')
+      }
+
+      const file = event.target.files[0]
+      const fileExt = file.name.split('.').pop()
+
+      if (fileExt?.toLowerCase() !== 'pdf') {
+        throw new Error('Sadece PDF formatında dosya yükleyebilirsiniz.')
+      }
+
+      const fileName = `cv-${Math.random()}.${fileExt}`
+      const filePath = `${fileName}`
+
+      let { error: uploadError } = await supabase.storage
+        .from('cv')
+        .upload(filePath, file)
+
+      if (uploadError) throw uploadError
+
+      const { data } = supabase.storage.from('cv').getPublicUrl(filePath)
+      setCvUrl(data.publicUrl)
+      alert('CV başarıyla yüklendi! Kaydetmeyi unutmayın.')
+    } catch (error: any) {
+      alert('CV yüklenemedi: ' + error.message)
+    } finally {
+      setCvUploading(false)
+    }
+  }
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-[#FDFBF7] py-12 px-4 flex items-center justify-center">
@@ -143,6 +178,30 @@ export default function ProfilePage() {
                     disabled={uploading}
                     className="text-sm text-[#78716C] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#E8E2D5] file:text-[#3E3A36] hover:file:bg-[#D6CFC7] cursor-pointer"
                   />
+                </div>
+              </div>
+
+              {/* CV (PDF) Yükleme Alanı */}
+              <div className="bg-white/60 p-4 rounded-xl border border-[#E8E2D5] space-y-2">
+                <label className="block text-sm font-semibold text-[#57534E] mb-1">Özgeçmiş (CV - PDF)</label>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    onChange={uploadCv}
+                    disabled={cvUploading}
+                    className="text-sm text-[#78716C] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#E8E2D5] file:text-[#3E3A36] hover:file:bg-[#D6CFC7] cursor-pointer"
+                  />
+                  {cvUrl && (
+                    <a 
+                      href={cvUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-xs text-blue-600 hover:underline font-semibold whitespace-nowrap bg-blue-50 px-3 py-2 rounded-lg border border-blue-200 text-center"
+                    >
+                      📄 Yüklü CV'yi Görüntüle
+                    </a>
+                  )}
                 </div>
               </div>
 

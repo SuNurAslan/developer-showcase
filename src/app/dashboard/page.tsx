@@ -9,6 +9,8 @@ export default function DashboardPage() {
   const supabase = createClient()
 
   const [projects, setProjects] = useState<any[]>([])
+  const [filteredProjects, setFilteredProjects] = useState<any[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
@@ -17,13 +19,13 @@ export default function DashboardPage() {
       try {
         setLoading(true)
 
-        // 1. Önce giriş yapan kullanıcının ID'sini alalım (silme yetkisi için)
+        // 1. Oturum açan kullanıcının ID'sini al
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
           setCurrentUserId(user.id)
         }
 
-        // 2. Projeleri ve bunları paylaşan kullanıcıların profillerini (profiles) birlikte çekelim
+        // 2. Projeleri ve profilleri çek
         const { data, error } = await supabase
           .from('projects')
           .select(`
@@ -39,6 +41,7 @@ export default function DashboardPage() {
         if (error) throw error
 
         setProjects(data ?? [])
+        setFilteredProjects(data ?? [])
       } catch (error) {
         console.error('Akış yüklenirken hata:', error)
       } finally {
@@ -49,27 +52,54 @@ export default function DashboardPage() {
     fetchFeed()
   }, [supabase])
 
+  // Arama filtresi
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredProjects(projects)
+    } else {
+      const query = searchQuery.toLowerCase()
+      const filtered = projects.filter(
+        (p) => 
+          p.title?.toLowerCase().includes(query) ||
+          p.profiles?.full_name?.toLowerCase().includes(query) ||
+          p.profiles?.username?.toLowerCase().includes(query)
+      )
+      setFilteredProjects(filtered)
+    }
+  }, [searchQuery, projects])
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-[#FDFBF7] py-10 px-4 flex flex-col items-center">
         <div className="w-full max-w-4xl space-y-6">
 
           <h1 className="text-2xl font-bold text-[#3E3A36] text-center">
-            Geliştirici Akışı
+            Geliştirici Akışı & Keşfet
           </h1>
+
+          {/* Arama Kutusu */}
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Proje adına veya geliştirici adına göre ara..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full p-3.5 pl-4 rounded-2xl bg-[#F4F1EA] border border-[#E8E2D5] text-[#3E3A36] placeholder-[#8C7A6B] focus:outline-none focus:ring-2 focus:ring-[#8C7A6B] transition shadow-sm"
+            />
+          </div>
 
           {loading ? (
             <p className="text-center text-[#78716C] animate-pulse">
               Akış yükleniyor...
             </p>
-          ) : projects.length === 0 ? (
+          ) : filteredProjects.length === 0 ? (
             <div className="text-center bg-[#F4F1EA] p-8 rounded-2xl border border-[#E8E2D5]">
               <p className="text-[#78716C]">
-                Henüz hiç proje paylaşılmamış. İlk projeyi sen ekle!
+                Aradığınız kriterlere uygun proje bulunamadı.
               </p>
             </div>
           ) : (
-            projects.map((project) => (
+            filteredProjects.map((project) => (
               <ProjectCard 
                 key={project.id} 
                 project={project} 
