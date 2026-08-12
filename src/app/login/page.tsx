@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -93,15 +92,17 @@ export default function LoginPage() {
               </label>
 
               {/* Şifremi Unuttum */}
-              {!isSignUp && (
-                <Link
-                  href="/forgot-password"
-                  className="text-xs text-[#78716C] hover:text-[#3E3A36] transition font-medium"
-                >
-                  Şifremi Unuttum?
-                </Link>
-              )}
-
+             {!isSignUp && (
+  <button
+    type="button"
+    onClick={() => {
+      window.location.href = '/forgot-password'
+    }}
+    className="text-xs text-[#78716C] hover:text-[#3E3A36] transition font-medium"
+  >
+    Şifremi Unuttum?
+  </button>
+)}
             </div>
 
             <input
