@@ -1,23 +1,20 @@
 'use client'
 
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { LogOut } from 'lucide-react'
+import { signOutUser } from '@/features/auth/services/authService'
 
 export default function LogoutButton() {
   const router = useRouter()
-  const supabase = createClient()
 
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut()
-    
-    if (error) {
+    try {
+      await signOutUser()
+      router.push('/login')
+      router.refresh()
+    } catch (error: any) {
       console.error('Çıkış yapılırken bir hata oluştu:', error.message)
-      return
     }
-
-    router.push('/login')
-    router.refresh()
   }
 
   return (

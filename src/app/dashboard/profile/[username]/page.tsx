@@ -1,15 +1,21 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import ProjectCard from '@/components/ProjectCard'
+import ProjectCard from '@/features/projects/components/ProjectCard'
+import { getUserByUsername } from '@/features/profile/services/profileService'
 
 export default function UserProfilePage() {
   const params = useParams()
-  const username = params?.username ? String(params.username) : null
-  
+  const router = useRouter()
+
+  const username = params?.username
+    ? String(params.username)
+    : null
+
   const supabase = createClient()
+
   const [profile, setProfile] = useState<any>(null)
   const [projects, setProjects] = useState<any[]>([])
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
@@ -18,37 +24,27 @@ export default function UserProfilePage() {
   useEffect(() => {
     async function fetchUserData() {
       if (!username) return
+
       setLoading(true)
 
       try {
-        // Oturum açan kullanıcının ID'sini al
-        const { data: { user } } = await supabase.auth.getUser()
+        // Giriş yapan kullanıcıyı al
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+
         if (user) {
           setCurrentUserId(user.id)
         }
 
-        // 1. Kullanıcıyı bul
-        const { data: userData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('username', username)
-          .maybeSingle()
+        // Profil ve projeleri servisten getir
+        const {
+          profile: userData,
+          projects: projectData,
+        } = await getUserByUsername(username)
 
-        if (profileError) throw profileError
-
-        if (userData) {
-          setProfile(userData)
-
-          // 2. O kullanıcının projelerini çek
-          const { data: projectData, error: projectError } = await supabase
-            .from('projects')
-            .select('*, profiles(*)')
-            .eq('user_id', userData.id)
-            .order('created_at', { ascending: false })
-            
-          if (projectError) throw projectError
-          setProjects(projectData || [])
-        }
+        setProfile(userData)
+        setProjects(projectData)
       } catch (error) {
         console.error('Profil yüklenirken hata:', error)
       } finally {
@@ -57,63 +53,136 @@ export default function UserProfilePage() {
     }
 
     fetchUserData()
-  }, [username, supabase])
+  }, [username])
 
-  if (loading) return <div className="text-center py-10 text-[#78716C]">Profil yükleniyor...</div>
-  if (!profile) return <div className="text-center py-10 text-[#78716C]">Kullanıcı bulunamadı.</div>
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center">
+        <p className="text-[#78716C] animate-pulse">
+          Profil yükleniyor...
+        </p>
+      </div>
+    )
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center">
+        <p className="text-[#78716C]">
+          Kullanıcı bulunamadı.
+        </p>
+      </div>
+    )
+  }
+
+  // Görüntülenen profil giriş yapan kullanıcıya mı ait?
+  const isOwnProfile = currentUserId === profile.id
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] py-10 px-4 flex flex-col items-center">
-      <div className="w-full max-w-4xl space-y-8">
-        {/* Profil Başlığı */}
-        <div className="text-center space-y-3">
-          {profile.avatar_url ? (
-            <img src={profile.avatar_url} className="w-24 h-24 rounded-full mx-auto object-cover border border-[#E8E2D5]" alt="Avatar" />
-          ) : (
-            <div className="w-24 h-24 rounded-full bg-[#8C7A6B] mx-auto flex items-center justify-center text-2xl font-bold text-white">
-              {profile.full_name?.charAt(0).toUpperCase() || profile.username?.charAt(0).toUpperCase() || 'U'}
-            </div>
-          )}
-          <h1 className="text-3xl font-bold text-[#3E3A36]">{profile.full_name}</h1>
-          <p className="text-[#78716C]">@{profile.username}</p>
+    <div className="min-h-screen bg-[#FDFBF7] py-10 px-4">
+      <div className="w-full max-w-4xl mx-auto space-y-8">
 
-          {/* Biyografi */}
-          {profile.bio && (
-            <p className="text-sm text-[#57534E] max-w-md mx-auto italic">{profile.bio}</p>
+        {/* Üst Alan */}
+        <div className="relative bg-[#F4F1EA] border border-[#E8E2D5] rounded-2xl p-8 shadow-md">
+
+          {/* Profili Düzenle */}
+          {isOwnProfile && (
+            <button
+              onClick={() => router.push('/dashboard/profile')}
+              className="absolute top-6 right-6 px-4 py-2 bg-[#5C5247] hover:bg-[#3E3A36] text-white text-sm font-semibold rounded-xl transition shadow-sm"
+            >
+              Profili Düzenle
+            </button>
           )}
 
-          {/* CV Görüntüleme Butonu */}
-          {profile.cv_url && (
-            <div className="pt-2">
-              <a 
-                href={profile.cv_url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-[#5C5247] hover:bg-[#3E3A36] text-white px-5 py-2.5 rounded-xl font-medium text-sm transition shadow-md"
-              >
-                📄 Özgeçmişimi (CV) İncele
-              </a>
-            </div>
-          )}
+          {/* Profil Bilgileri */}
+          <div className="text-center space-y-3">
+
+            {/* Profil Fotoğrafı */}
+            {profile.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt="Profil Fotoğrafı"
+                className="w-28 h-28 rounded-full mx-auto object-cover border-2 border-white shadow-md"
+              />
+            ) : (
+              <div className="w-28 h-28 rounded-full bg-[#8C7A6B] mx-auto flex items-center justify-center text-3xl font-bold text-white">
+                {profile.full_name?.charAt(0).toUpperCase() ||
+                  profile.username?.charAt(0).toUpperCase() ||
+                  'U'}
+              </div>
+            )}
+
+            {/* Ad Soyad */}
+            <h1 className="text-3xl font-bold text-[#3E3A36]">
+              {profile.full_name || 'İsimsiz Kullanıcı'}
+            </h1>
+
+            {/* Kullanıcı Adı */}
+            <p className="text-[#78716C]">
+              @{profile.username}
+            </p>
+
+            {/* Biyografi */}
+            {profile.bio && (
+              <p className="text-sm text-[#57534E] max-w-lg mx-auto italic">
+                {profile.bio}
+              </p>
+            )}
+
+            {/* CV */}
+            {profile.cv_url && (
+              <div className="pt-3">
+                <a
+                  href={profile.cv_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 bg-white hover:bg-[#E8E2D5] text-[#5C5247] border border-[#D6CFC7] px-5 py-2.5 rounded-xl font-semibold text-sm transition shadow-sm"
+                >
+                  📄 CV'yi Görüntüle
+                </a>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Projeler Bölümü */}
-        <div className="space-y-6">
-          <h2 className="text-xl font-semibold text-[#3E3A36]">Projeleri</h2>
+        {/* Projeler */}
+        <div className="space-y-5">
+
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-[#3E3A36]">
+              {isOwnProfile ? 'Projelerim' : 'Projeleri'}
+            </h2>
+
+            {isOwnProfile && (
+              <span className="text-sm text-[#78716C]">
+                {projects.length} proje
+              </span>
+            )}
+          </div>
+
           {projects.length > 0 ? (
-            projects.map((p) => (
-                <ProjectCard 
-                    key={p.id} 
-                    project={p} 
-                    currentUserId={currentUserId}
+            <div className="space-y-6">
+              {projects.map((project) => (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  currentUserId={currentUserId}
                 />
-            ))
+              ))}
+            </div>
           ) : (
             <div className="text-center bg-[#F4F1EA] p-8 rounded-2xl border border-[#E8E2D5]">
-                <p className="text-[#78716C]">Bu kullanıcının henüz projesi yok.</p>
+              <p className="text-[#78716C]">
+                {isOwnProfile
+                  ? 'Henüz bir projeniz yok.'
+                  : 'Bu kullanıcının henüz projesi yok.'}
+              </p>
             </div>
           )}
+
         </div>
+
       </div>
     </div>
   )

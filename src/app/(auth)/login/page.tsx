@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { signIn, signUp } from '@/features/auth/services/authService'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -11,7 +12,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
 
   const router = useRouter()
-  const supabase = createClient()
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -19,24 +19,10 @@ export default function LoginPage() {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-        })
-
-        if (error) throw error
-
-        alert(
-          'Kayıt başarılı! Lütfen e-postanızı kontrol edin veya giriş yapın.'
-        )
+        await signUp(email, password)
+        alert('Kayıt başarılı! Lütfen e-postanızı kontrol edin veya giriş yapın.')
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        })
-
-        if (error) throw error
-
+        await signIn(email, password)
         router.push('/dashboard')
         router.refresh()
       }
@@ -51,7 +37,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-[#FDFBF7] px-4">
       <div className="max-w-md w-full bg-[#F4F1EA] p-8 rounded-2xl shadow-lg border border-[#E8E2D5]">
 
-        {/* Başlık Alanı */}
+        {/* Başlık */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-[#3E3A36]">
             {isSignUp ? 'Aramıza Katılın' : 'Tekrar Hoş Geldiniz'}
@@ -64,7 +50,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Form Alanı */}
+        {/* FORM */}
         <form onSubmit={handleAuth} className="space-y-5">
 
           {/* E-posta */}
@@ -83,7 +69,7 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* Şifre */}
+          {/* Şifre başlığı */}
           <div>
             <div className="flex items-center justify-between mb-1">
 
@@ -91,18 +77,16 @@ export default function LoginPage() {
                 Şifre
               </label>
 
-              {/* Şifremi Unuttum */}
-             {!isSignUp && (
-  <button
-    type="button"
-    onClick={() => {
-      window.location.href = '/forgot-password'
-    }}
-    className="text-xs text-[#78716C] hover:text-[#3E3A36] transition font-medium"
-  >
-    Şifremi Unuttum?
-  </button>
-)}
+              {/* SADECE GÖRÜNTÜ OLARAK FORMUN İÇİNDE */}
+              {!isSignUp && (
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-[#78716C] hover:text-[#3E3A36] transition font-medium"
+                >
+                  Şifremi Unuttum?
+                </Link>
+              )}
+
             </div>
 
             <input
@@ -124,13 +108,13 @@ export default function LoginPage() {
             {loading
               ? 'Yükleniyor...'
               : isSignUp
-                ? 'Kayıt Ol'
-                : 'Giriş Yap'}
+              ? 'Kayıt Ol'
+              : 'Giriş Yap'}
           </button>
 
         </form>
 
-        {/* Mod Değiştirme */}
+        {/* Mod değiştirme */}
         <div className="text-center mt-6">
           <button
             type="button"

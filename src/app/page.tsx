@@ -1,29 +1,37 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { getCurrentUser, signOutUser } from '@/features/auth/services/authService'
 
 export default function Home() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
-  const supabase = createClient()
 
   useEffect(() => {
-    async function checkUser() {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      setLoading(false)
+    async function fetchUser() {
+      try {
+        const currentUser = await getCurrentUser()
+        setUser(currentUser)
+      } catch (error) {
+        console.error('Kullanıcı bilgisi alınamadı:', error)
+      } finally {
+        setLoading(false)
+      }
     }
-    checkUser()
-  }, [supabase])
+    fetchUser()
+  }, [])
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    setUser(null)
-    router.refresh()
+    try {
+      await signOutUser()
+      setUser(null)
+      router.refresh()
+    } catch (error) {
+      console.error('Çıkış yapılırken hata:', error)
+    }
   }
 
   if (loading) {
@@ -43,7 +51,7 @@ export default function Home() {
           {user ? (
             <>
               <Link
-                href="/profile"
+                href="/dashboard/profile"
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-[#D6CFC7] text-[#3E3A36] hover:bg-[#E8E2D5] transition shadow-sm font-medium text-sm"
               >
                 Profilim

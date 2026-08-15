@@ -1,30 +1,27 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { resetPassword } from '@/features/auth/services/authService'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
-  const supabase = createClient()
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setMessage('')
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/update-password`,
-    })
-
-    if (error) {
-      setMessage('Hata: ' + error.message)
-    } else {
+    try {
+      await resetPassword(email)
       setMessage('Şifre sıfırlama bağlantısı e-posta adresinize gönderildi!')
+    } catch (error: any) {
+      setMessage('Hata: ' + error.message)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (

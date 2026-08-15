@@ -1,28 +1,30 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { searchProfiles } from '@/features/profile/services/profileService'
 
 export default function SearchModal({ onClose }: { onClose: () => void }) {
   const [search, setSearch] = useState('')
   const [results, setResults] = useState<any[]>([])
-  const supabase = createClient()
 
   useEffect(() => {
-    async function searchUsers() {
-      if (!search.trim()) { setResults([]); return }
+    async function handleSearch() {
+      if (!search.trim()) { 
+        setResults([])
+        return 
+      }
       
-      const { data } = await supabase
-        .from('profiles')
-        .select('username, full_name, avatar_url')
-        .or(`full_name.ilike.%${search}%,username.ilike.%${search}%`)
-        .limit(5)
-      
-      setResults(data || [])
+      try {
+        const data = await searchProfiles(search)
+        setResults(data)
+      } catch (error) {
+        console.error('Arama sırasında hata:', error)
+      }
     }
-    searchUsers()
-  }, [search, supabase])
+
+    handleSearch()
+  }, [search])
 
   return (
     <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto" onClick={onClose}>

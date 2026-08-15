@@ -1,13 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import ProjectCard from '@/components/ProjectCard'
+import ProjectCard from '@/features/projects/components/ProjectCard'
+import { getDashboardFeed } from '@/features/projects/services/projectServices'
 
 export default function DashboardPage() {
-  const supabase = createClient()
-
   const [projects, setProjects] = useState<any[]>([])
   const [filteredProjects, setFilteredProjects] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -19,29 +17,14 @@ export default function DashboardPage() {
       try {
         setLoading(true)
 
-        // 1. Oturum açan kullanıcının ID'sini al
-        const { data: { user } } = await supabase.auth.getUser()
+        const { user, projects: data } = await getDashboardFeed()
+
         if (user) {
           setCurrentUserId(user.id)
         }
 
-        // 2. Projeleri ve profilleri çek
-        const { data, error } = await supabase
-          .from('projects')
-          .select(`
-            *,
-            profiles (
-              username,
-              full_name,
-              avatar_url
-            )
-          `)
-          .order('created_at', { ascending: false })
-
-        if (error) throw error
-
-        setProjects(data ?? [])
-        setFilteredProjects(data ?? [])
+        setProjects(data)
+        setFilteredProjects(data)
       } catch (error) {
         console.error('Akış yüklenirken hata:', error)
       } finally {
@@ -50,7 +33,7 @@ export default function DashboardPage() {
     }
 
     fetchFeed()
-  }, [supabase])
+  }, [])
 
   // Arama filtresi
   useEffect(() => {
@@ -58,15 +41,24 @@ export default function DashboardPage() {
       setFilteredProjects(projects)
     } else {
       const query = searchQuery.toLowerCase()
+
       const filtered = projects.filter(
-        (p) => 
+        (p) =>
           p.title?.toLowerCase().includes(query) ||
           p.profiles?.full_name?.toLowerCase().includes(query) ||
           p.profiles?.username?.toLowerCase().includes(query)
       )
+
       setFilteredProjects(filtered)
     }
   }, [searchQuery, projects])
+
+  // Proje silindiğinde Dashboard'dan anında kaldır
+  const handleProjectDelete = (id: string) => {
+    setProjects((prevProjects) =>
+      prevProjects.filter((project) => project.id !== id)
+    )
+  }
 
   return (
     <ProtectedRoute>
@@ -100,10 +92,11 @@ export default function DashboardPage() {
             </div>
           ) : (
             filteredProjects.map((project) => (
-              <ProjectCard 
-                key={project.id} 
-                project={project} 
-                currentUserId={currentUserId} 
+              <ProjectCard
+                key={project.id}
+                project={project}
+                currentUserId={currentUserId}
+                onDelete={handleProjectDelete}
               />
             ))
           )}

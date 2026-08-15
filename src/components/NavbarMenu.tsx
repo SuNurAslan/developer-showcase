@@ -1,42 +1,53 @@
 'use client'
 
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import SearchModal from './SearchModal'
+import {
+  getMyProfile
+} from '@/features/profile/services/profileService'
+import { signOutUser } from '@/features/auth/services/authService'
 
 export default function NavbarMenu() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const supabase = createClient()
   const router = useRouter()
+
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [username, setUsername] = useState<string | null>(null)
 
   useEffect(() => {
-    async function getProfile() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('avatar_url')
-          .eq('id', user.id)
-          .single()
-        if (data) setAvatarUrl(data.avatar_url)
+    async function fetchProfile() {
+      try {
+        const { user, profile } = await getMyProfile()
+
+        if (user && profile) {
+          setAvatarUrl(profile.avatar_url || null)
+          setUsername(profile.username || null)
+        }
+      } catch (error) {
+        console.error('Navbar profil bilgileri yüklenirken hata:', error)
       }
     }
-    getProfile()
-  }, [supabase])
+
+    fetchProfile()
+  }, [])
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
+    try {
+      await signOutUser()
+      router.push('/login')
+    } catch (error) {
+      console.error('Çıkış yapılırken hata:', error)
+    }
   }
 
   return (
     <>
       <nav className="flex flex-col gap-3">
+
         {/* Arama Butonu */}
-        <button 
+        <button
           onClick={() => setIsSearchOpen(true)}
           title="Geliştirici Ara"
           className="bg-white p-3 rounded-full shadow-lg border border-[#E8E2D5] hover:bg-[#FDFBF7] transition-all flex items-center justify-center w-12 h-12 text-xl"
@@ -44,35 +55,72 @@ export default function NavbarMenu() {
           🔍
         </button>
 
-        <Link href="/dashboard" title="Akış" className="bg-white p-3 rounded-full shadow-lg border border-[#E8E2D5] hover:bg-[#FDFBF7] transition-all flex items-center justify-center w-12 h-12 text-xl">
+        {/* Ana Sayfa */}
+        <Link
+          href="/dashboard"
+          title="Akış"
+          className="bg-white p-3 rounded-full shadow-lg border border-[#E8E2D5] hover:bg-[#FDFBF7] transition-all flex items-center justify-center w-12 h-12 text-xl"
+        >
           🏠
         </Link>
 
-        <Link href="/dashboard/add-project" title="Yeni Proje Ekle" className="bg-white p-3 rounded-full shadow-lg border border-[#E8E2D5] hover:bg-[#FDFBF7] transition-all flex items-center justify-center w-12 h-12 text-xl">
+        {/* Yeni Proje */}
+        <Link
+          href="/dashboard/projects/add-project"
+          title="Yeni Proje Ekle"
+          className="bg-white p-3 rounded-full shadow-lg border border-[#E8E2D5] hover:bg-[#FDFBF7] transition-all flex items-center justify-center w-12 h-12 text-xl"
+        >
           ➕
         </Link>
 
-        {/* Profil Resimli Link */}
-        <Link href="/profile" title="Profilini Düzenle" className="bg-white p-2 rounded-full shadow-lg border border-[#E8E2D5] hover:bg-[#FDFBF7] transition-all flex items-center justify-center w-12 h-12 overflow-hidden">
-          {avatarUrl ? (
-            <img src={avatarUrl} alt="Profil" className="w-full h-full object-cover" />
-          ) : (
-            <span className="text-xl">👤</span>
-          )}
-        </Link>
+        {/* PROFİL */}
+        {username ? (
+          <Link
+            href={`/dashboard/profile/${username}`}
+            title="Profilim"
+            className="bg-white p-2 rounded-full shadow-lg border border-[#E8E2D5] hover:bg-[#FDFBF7] transition-all flex items-center justify-center w-12 h-12 overflow-hidden"
+          >
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt="Profil"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-xl">👤</span>
+            )}
+          </Link>
+        ) : (
+          <div
+            className="bg-white p-2 rounded-full shadow-lg border border-[#E8E2D5] flex items-center justify-center w-12 h-12 overflow-hidden"
+          >
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt="Profil"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-xl">👤</span>
+            )}
+          </div>
+        )}
 
-        {/* Çıkış Butonu */}
-        <button 
+        {/* Çıkış */}
+        <button
           onClick={handleLogout}
           title="Çıkış Yap"
           className="bg-red-500 text-white p-3 rounded-full shadow-lg hover:bg-red-600 transition-all flex items-center justify-center w-12 h-12 text-xl"
         >
           ⏻
         </button>
+
       </nav>
 
       {/* Arama Modalı */}
-      {isSearchOpen && <SearchModal onClose={() => setIsSearchOpen(false)} />}
+      {isSearchOpen && (
+        <SearchModal onClose={() => setIsSearchOpen(false)} />
+      )}
     </>
   )
 }

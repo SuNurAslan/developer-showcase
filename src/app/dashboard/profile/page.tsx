@@ -1,47 +1,43 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { useRouter } from 'next/navigation'
+import { 
+  getMyProfile, 
+  updateMyProfile, 
+  uploadAvatarFile, 
+  uploadCvFile 
+} from '@/features/profile/services/profileService'
 
 export default function ProfilePage() {
   const router = useRouter()
-  const supabase = createClient()
   const [loading, setLoading] = useState(true)
   const [username, setUsername] = useState('')
   const [fullName, setFullName] = useState('')
   const [bio, setBio] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [cvUrl, setCvUrl] = useState('')
+  const [userId, setUserId] = useState<string | null>(null)
   
   const [uploading, setUploading] = useState(false)
   const [cvUploading, setCvUploading] = useState(false)
 
   useEffect(() => {
-    async function getProfile() {
+    async function loadProfile() {
       try {
         setLoading(true)
-        const { data: { user } } = await supabase.auth.getUser()
+        const { user, profile } = await getMyProfile()
 
         if (!user) return
+        setUserId(user.id)
 
-        let { data, error } = await supabase
-          .from('profiles')
-          .select('username, full_name, bio, avatar_url, cv_url')
-          .eq('id', user.id)
-          .maybeSingle()
-
-        if (error) {
-          console.error(error)
-        }
-
-        if (data) {
-          setUsername(data.username || '')
-          setFullName(data.full_name || '')
-          setBio(data.bio || '')
-          setAvatarUrl(data.avatar_url || '')
-          setCvUrl(data.cv_url || '')
+        if (profile) {
+          setUsername(profile.username || '')
+          setFullName(profile.full_name || '')
+          setBio(profile.bio || '')
+          setAvatarUrl(profile.avatar_url || '')
+          setCvUrl(profile.cv_url || '')
         }
       } catch (error) {
         console.error('Profil yüklenirken hata oluştu:', error)
@@ -50,28 +46,24 @@ export default function ProfilePage() {
       }
     }
 
-    getProfile()
-  }, [supabase])
+    loadProfile()
+  }, [])
 
   // Profil Güncelleme Fonksiyonu
   async function updateProfile(e: React.FormEvent) {
     e.preventDefault()
+    if (!userId) return
+
     try {
       setLoading(true)
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const updates = {
-        id: user.id,
+      await updateMyProfile({
+        id: userId,
         username,
         full_name: fullName,
         bio,
         avatar_url: avatarUrl,
         cv_url: cvUrl,
-      }
-
-      let { error } = await supabase.from('profiles').upsert(updates)
-      if (error) throw error
+      })
       
       alert('Profil başarıyla güncellendi!')
       router.push('/dashboard')
@@ -82,28 +74,17 @@ export default function ProfilePage() {
     }
   }
 
-  // Avatar (Fotoğraf) Yükleme Fonksiyonu
+  // Avatar Yükleme
   async function uploadAvatar(event: React.ChangeEvent<HTMLInputElement>) {
     try {
       setUploading(true)
-
       if (!event.target.files || event.target.files.length === 0) {
         throw new Error('Lütfen yüklenecek bir resim seçin.')
       }
 
       const file = event.target.files[0]
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${Math.random()}.${fileExt}`
-      const filePath = `${fileName}`
-
-      let { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file)
-
-      if (uploadError) throw uploadError
-
-      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath)
-      setAvatarUrl(data.publicUrl)
+      const publicUrl = await uploadAvatarFile(file)
+      setAvatarUrl(publicUrl)
       alert('Fotoğraf yüklendi! Kaydetmeyi unutmayın.')
     } catch (error: any) {
       alert('Fotoğraf yüklenemedi: ' + error.message)
@@ -112,33 +93,17 @@ export default function ProfilePage() {
     }
   }
 
-  // CV (PDF) Yükleme Fonksiyonu
+  // CV Yükleme
   async function uploadCv(event: React.ChangeEvent<HTMLInputElement>) {
     try {
       setCvUploading(true)
-
       if (!event.target.files || event.target.files.length === 0) {
         throw new Error('Lütfen yüklenecek bir PDF dosyası seçin.')
       }
 
       const file = event.target.files[0]
-      const fileExt = file.name.split('.').pop()
-
-      if (fileExt?.toLowerCase() !== 'pdf') {
-        throw new Error('Sadece PDF formatında dosya yükleyebilirsiniz.')
-      }
-
-      const fileName = `cv-${Math.random()}.${fileExt}`
-      const filePath = `${fileName}`
-
-      let { error: uploadError } = await supabase.storage
-        .from('cv')
-        .upload(filePath, file)
-
-      if (uploadError) throw uploadError
-
-      const { data } = supabase.storage.from('cv').getPublicUrl(filePath)
-      setCvUrl(data.publicUrl)
+      const publicUrl = await uploadCvFile(file)
+      setCvUrl(publicUrl)
       alert('CV başarıyla yüklendi! Kaydetmeyi unutmayın.')
     } catch (error: any) {
       alert('CV yüklenemedi: ' + error.message)
@@ -192,16 +157,6 @@ export default function ProfilePage() {
                     disabled={cvUploading}
                     className="text-sm text-[#78716C] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#E8E2D5] file:text-[#3E3A36] hover:file:bg-[#D6CFC7] cursor-pointer"
                   />
-                  {cvUrl && (
-                    <a 
-                      href={cvUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="text-xs text-blue-600 hover:underline font-semibold whitespace-nowrap bg-blue-50 px-3 py-2 rounded-lg border border-blue-200 text-center"
-                    >
-                      📄 Yüklü CV'yi Görüntüle
-                    </a>
-                  )}
                 </div>
               </div>
 

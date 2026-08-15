@@ -1,11 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter, useParams } from 'next/navigation'
+import { getProjectById, updateProject, uploadEditProjectImage } from '@/features/projects/services/projectServices'
 
 export default function EditProjectPage() {
-  const supabase = createClient()
   const router = useRouter()
   const { id } = useParams()
   
@@ -21,17 +20,18 @@ export default function EditProjectPage() {
 
   useEffect(() => {
     async function fetchProject() {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', id)
-        .single()
-      
-      if (data) setFormData(data)
-      setLoading(false)
+      if (!id) return
+      try {
+        const data = await getProjectById(String(id))
+        if (data) setFormData(data)
+      } catch (error) {
+        console.error('Proje yüklenirken hata:', error)
+      } finally {
+        setLoading(false)
+      }
     }
     fetchProject()
-  }, [id, supabase])
+  }, [id])
 
   // Yeni görsel yükleme fonksiyonu
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,33 +39,24 @@ export default function EditProjectPage() {
     if (!file) return
 
     setUploading(true)
-    const fileExt = file.name.split('.').pop()
-    const fileName = `${Math.random()}.${fileExt}`
-    const filePath = `projects/${fileName}`
-
-    const { error: uploadError } = await supabase.storage
-      .from('edit project')
-      .upload(filePath, file)
-
-    if (!uploadError) {
-      const { data } = supabase.storage.from('edit project').getPublicUrl(filePath)
-      setFormData({...formData, image_url: data.publicUrl})
-    } else {
-      alert('Görsel yüklenirken hata oluştu: ' + uploadError.message)
+    try {
+      const publicUrl = await uploadEditProjectImage(file)
+      setFormData({...formData, image_url: publicUrl})
+    } catch (error: any) {
+      alert('Görsel yüklenirken hata oluştu: ' + error.message)
+    } finally {
+      setUploading(false)
     }
-    setUploading(false)
   }
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
-    const { error } = await supabase
-      .from('projects')
-      .update(formData)
-      .eq('id', id)
+    if (!id) return
 
-    if (!error) {
+    try {
+      await updateProject(String(id), formData)
       router.push('/dashboard')
-    } else {
+    } catch (error: any) {
       alert('Hata oluştu: ' + error.message)
     }
   }

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { uploadProjectImage, createProject } from '@/features/projects/services/projectServices'
 
 export default function AddProjectPage() {
   const supabase = createClient()
@@ -28,40 +29,20 @@ export default function AddProjectPage() {
 
       let imageUrl = ''
 
+      // Görsel varsa servisle yükle
       if (imageFile) {
-        const fileExt = imageFile.name.split('.').pop()
-        const fileName = `${user.id}-${Date.now()}.${fileExt}`
-        const filePath = `${fileName}`
-
-        const { error: uploadError } = await supabase.storage
-          .from('Project-Image')
-          .upload(filePath, imageFile)
-
-        if (uploadError) {
-          throw new Error('Görsel yüklenemedi: ' + uploadError.message)
-        }
-
-        const { data: publicURLData } = supabase.storage
-          .from('Project-Image')
-          .getPublicUrl(filePath)
-
-        imageUrl = publicURLData.publicUrl
+        imageUrl = await uploadProjectImage(imageFile, user.id)
       }
 
-      const { error: insertError } = await supabase.from('projects').insert([
-        {
-          user_id: user.id,
-          title,
-          description,
-          github_url: githubUrl,
-          demo_url: demoUrl,
-          image_url: imageUrl,
-        },
-      ])
-
-      if (insertError) {
-        throw new Error('Proje kaydedilemedi: ' + insertError.message)
-      }
+      // Projeyi servisle veritabanına kaydet
+      await createProject({
+        user_id: user.id,
+        title,
+        description,
+        github_url: githubUrl,
+        demo_url: demoUrl,
+        image_url: imageUrl,
+      })
 
       router.refresh()
       router.push('/dashboard')
