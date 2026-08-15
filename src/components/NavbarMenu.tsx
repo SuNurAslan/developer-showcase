@@ -5,32 +5,40 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import SearchModal from './SearchModal'
 import {
-  getMyProfile
+  getNavbarAvatar,
+  getMyProfile,
 } from '@/features/profile/services/profileService'
 import { signOutUser } from '@/features/auth/services/authService'
 
 export default function NavbarMenu() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const router = useRouter()
-
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [username, setUsername] = useState<string | null>(null)
 
-  useEffect(() => {
-    async function fetchProfile() {
-      try {
-        const { user, profile } = await getMyProfile()
+  const router = useRouter()
 
-        if (user && profile) {
-          setAvatarUrl(profile.avatar_url || null)
-          setUsername(profile.username || null)
+  useEffect(() => {
+    async function fetchProfileData() {
+      try {
+        // Navbar profil fotoğrafını getir
+        const url = await getNavbarAvatar()
+        setAvatarUrl(url)
+
+        // Giriş yapan kullanıcının profil bilgilerini getir
+        const { profile } = await getMyProfile()
+
+        if (profile?.username) {
+          setUsername(profile.username)
         }
       } catch (error) {
-        console.error('Navbar profil bilgileri yüklenirken hata:', error)
+        console.error(
+          'Navbar profil bilgileri yüklenirken hata:',
+          error
+        )
       }
     }
 
-    fetchProfile()
+    fetchProfileData()
   }, [])
 
   const handleLogout = async () => {
@@ -44,82 +52,129 @@ export default function NavbarMenu() {
 
   return (
     <>
-      <nav className="flex flex-col gap-3">
+      <nav className="fixed right-5 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-3">
 
-        {/* Arama Butonu */}
+        {/* Arama */}
         <button
           onClick={() => setIsSearchOpen(true)}
           title="Geliştirici Ara"
-          className="bg-white p-3 rounded-full shadow-lg border border-[#E8E2D5] hover:bg-[#FDFBF7] transition-all flex items-center justify-center w-12 h-12 text-xl"
+          className="
+            group
+            w-12 h-12
+            rounded-full
+            bg-white
+            border border-[#E8E2D5]
+            shadow-md
+            flex items-center justify-center
+            text-[#5C5247]
+            transition-all duration-200
+            hover:-translate-x-1
+            hover:shadow-lg
+            hover:bg-[#F8F6F1]
+          "
         >
-          🔍
+          <span className="text-lg group-hover:scale-110 transition-transform">
+            🔍
+          </span>
         </button>
 
         {/* Ana Sayfa */}
         <Link
           href="/dashboard"
-          title="Akış"
-          className="bg-white p-3 rounded-full shadow-lg border border-[#E8E2D5] hover:bg-[#FDFBF7] transition-all flex items-center justify-center w-12 h-12 text-xl"
+          title="Ana Sayfa"
+          className="
+            group
+            w-12 h-12
+            rounded-full
+            bg-white
+            border border-[#E8E2D5]
+            shadow-md
+            flex items-center justify-center
+            text-[#5C5247]
+            transition-all duration-200
+            hover:-translate-x-1
+            hover:shadow-lg
+            hover:bg-[#F8F6F1]
+          "
         >
-          🏠
+          <span className="text-lg group-hover:scale-110 transition-transform">
+            🏠
+          </span>
         </Link>
 
-        {/* Yeni Proje */}
+        {/* Profil */}
         <Link
-          href="/dashboard/projects/add-project"
-          title="Yeni Proje Ekle"
-          className="bg-white p-3 rounded-full shadow-lg border border-[#E8E2D5] hover:bg-[#FDFBF7] transition-all flex items-center justify-center w-12 h-12 text-xl"
+          href={
+            username
+              ? `/dashboard/profile/${username}`
+              : '/dashboard/profile'
+          }
+          title="Profilim"
+          className="
+            group
+            w-12 h-12
+            rounded-full
+            bg-white
+            border border-[#E8E2D5]
+            shadow-md
+            flex items-center justify-center
+            overflow-hidden
+            transition-all duration-200
+            hover:-translate-x-1
+            hover:shadow-lg
+            hover:bg-[#F8F6F1]
+          "
         >
-          ➕
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt="Profil"
+              className="
+                w-full
+                h-full
+                object-cover
+                group-hover:scale-105
+                transition-transform
+              "
+            />
+          ) : (
+            <span className="text-lg">
+              👤
+            </span>
+          )}
         </Link>
-
-        {/* PROFİL */}
-        {username ? (
-          <Link
-            href={`/dashboard/profile/${username}`}
-            title="Profilim"
-            className="bg-white p-2 rounded-full shadow-lg border border-[#E8E2D5] hover:bg-[#FDFBF7] transition-all flex items-center justify-center w-12 h-12 overflow-hidden"
-          >
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt="Profil"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span className="text-xl">👤</span>
-            )}
-          </Link>
-        ) : (
-          <div
-            className="bg-white p-2 rounded-full shadow-lg border border-[#E8E2D5] flex items-center justify-center w-12 h-12 overflow-hidden"
-          >
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt="Profil"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span className="text-xl">👤</span>
-            )}
-          </div>
-        )}
 
         {/* Çıkış */}
         <button
           onClick={handleLogout}
           title="Çıkış Yap"
-          className="bg-red-500 text-white p-3 rounded-full shadow-lg hover:bg-red-600 transition-all flex items-center justify-center w-12 h-12 text-xl"
+          className="
+            group
+            w-12 h-12
+            rounded-full
+            bg-[#EF4444]
+            border border-[#DC2626]
+            shadow-md
+            flex items-center justify-center
+            text-white
+            transition-all duration-200
+            hover:-translate-x-1
+            hover:shadow-lg
+            hover:bg-[#DC2626]
+          "
         >
-          ⏻
+          <span className="text-lg group-hover:scale-110 transition-transform">
+            ⏻
+          </span>
         </button>
 
       </nav>
 
       {/* Arama Modalı */}
       {isSearchOpen && (
-        <SearchModal onClose={() => setIsSearchOpen(false)} />
+        <SearchModal
+          onClose={() => setIsSearchOpen(false)}
+        />
       )}
     </>
   )

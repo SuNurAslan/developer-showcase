@@ -28,7 +28,7 @@ export default function UserProfilePage() {
       setLoading(true)
 
       try {
-        // Giriş yapan kullanıcıyı al
+        // Giriş yapan kullanıcıyı bul
         const {
           data: { user },
         } = await supabase.auth.getUser()
@@ -37,7 +37,7 @@ export default function UserProfilePage() {
           setCurrentUserId(user.id)
         }
 
-        // Profil ve projeleri servisten getir
+        // Profil ve projeleri getir
         const {
           profile: userData,
           projects: projectData,
@@ -75,93 +75,276 @@ export default function UserProfilePage() {
     )
   }
 
-  // Görüntülenen profil giriş yapan kullanıcıya mı ait?
+  // Bu profil giriş yapan kullanıcıya mı ait?
   const isOwnProfile = currentUserId === profile.id
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] py-10 px-4">
+    <div className="min-h-screen bg-[#FDFBF7] py-8 sm:py-10 px-4">
       <div className="w-full max-w-4xl mx-auto space-y-8">
 
-        {/* Üst Alan */}
-        <div className="relative bg-[#F4F1EA] border border-[#E8E2D5] rounded-2xl p-8 shadow-md">
+        {/* ================= PROFİL KARTI ================= */}
+        <div className="relative bg-[#F4F1EA] rounded-2xl shadow-md border border-[#E8E2D5] overflow-hidden">
 
-          {/* Profili Düzenle */}
-          {isOwnProfile && (
-            <button
-              onClick={() => router.push('/dashboard/profile')}
-              className="absolute top-6 right-6 px-4 py-2 bg-[#5C5247] hover:bg-[#3E3A36] text-white text-sm font-semibold rounded-xl transition shadow-sm"
-            >
-              Profili Düzenle
-            </button>
-          )}
+          {/* Profil Kartı İçeriği */}
+          <div className="px-5 py-8 sm:px-10 sm:py-10 text-center">
 
-          {/* Profil Bilgileri */}
-          <div className="text-center space-y-3">
-
-            {/* Profil Fotoğrafı */}
-            {profile.avatar_url ? (
-              <img
-                src={profile.avatar_url}
-                alt="Profil Fotoğrafı"
-                className="w-28 h-28 rounded-full mx-auto object-cover border-2 border-white shadow-md"
-              />
-            ) : (
-              <div className="w-28 h-28 rounded-full bg-[#8C7A6B] mx-auto flex items-center justify-center text-3xl font-bold text-white">
-                {profile.full_name?.charAt(0).toUpperCase() ||
-                  profile.username?.charAt(0).toUpperCase() ||
-                  'U'}
-              </div>
+            {/* Profil Düzenle */}
+            {isOwnProfile && (
+              <button
+                onClick={() => router.push('/dashboard/profile')}
+                className="
+                  absolute
+                  top-4
+                  right-4
+                  sm:top-5
+                  sm:right-5
+                  bg-[#5C5247]
+                  hover:bg-[#3E3A36]
+                  text-white
+                  px-3
+                  py-1.5
+                  rounded-lg
+                  text-xs
+                  font-semibold
+                  shadow-sm
+                  transition
+                  duration-200
+                "
+              >
+                Profil Düzenle
+              </button>
             )}
 
+            {/* Profil Fotoğrafı */}
+            <div className="flex justify-center">
+              {profile.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt="Profil Fotoğrafı"
+                  className="
+                    w-28
+                    h-28
+                    sm:w-32
+                    sm:h-32
+                    rounded-full
+                    object-cover
+                    border-2
+                    border-white
+                    shadow-md
+                  "
+                />
+              ) : (
+                <div
+                  className="
+                    w-28
+                    h-28
+                    sm:w-32
+                    sm:h-32
+                    rounded-full
+                    bg-[#8C7A6B]
+                    flex
+                    items-center
+                    justify-center
+                    text-3xl
+                    sm:text-4xl
+                    font-bold
+                    text-white
+                    border-2
+                    border-white
+                    shadow-md
+                  "
+                >
+                  {profile.full_name?.charAt(0).toUpperCase() ||
+                    profile.username?.charAt(0).toUpperCase() ||
+                    'U'}
+                </div>
+              )}
+            </div>
+
             {/* Ad Soyad */}
-            <h1 className="text-3xl font-bold text-[#3E3A36]">
-              {profile.full_name || 'İsimsiz Kullanıcı'}
+            <h1
+              className="
+                text-2xl
+                sm:text-3xl
+                font-bold
+                text-[#3E3A36]
+                mt-5
+              "
+            >
+              {profile.full_name || profile.username}
             </h1>
 
             {/* Kullanıcı Adı */}
-            <p className="text-[#78716C]">
+            <p className="text-[#78716C] mt-1.5 text-sm sm:text-base">
               @{profile.username}
             </p>
 
             {/* Biyografi */}
             {profile.bio && (
-              <p className="text-sm text-[#57534E] max-w-lg mx-auto italic">
+              <p
+                className="
+                  text-sm
+                  text-[#57534E]
+                  max-w-lg
+                  mx-auto
+                  italic
+                  mt-4
+                  leading-relaxed
+                "
+              >
                 {profile.bio}
               </p>
             )}
 
             {/* CV */}
             {profile.cv_url && (
-              <div className="pt-3">
+              <div className="mt-6 flex justify-center">
                 <a
                   href={profile.cv_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 bg-white hover:bg-[#E8E2D5] text-[#5C5247] border border-[#D6CFC7] px-5 py-2.5 rounded-xl font-semibold text-sm transition shadow-sm"
+                  className="
+                    inline-flex
+                    items-center
+                    gap-2
+                    bg-white
+                    hover:bg-[#F8F6F1]
+                    text-[#3E3A36]
+                    px-5
+                    py-2.5
+                    rounded-xl
+                    font-semibold
+                    text-sm
+                    transition
+                    duration-200
+                    shadow-sm
+                    border
+                    border-[#D6CFC7]
+                  "
                 >
-                  📄 CV'yi Görüntüle
+                  <span>📄</span>
+                  CV'yi Görüntüle
                 </a>
               </div>
             )}
           </div>
         </div>
 
-        {/* Projeler */}
+        {/* ================= PROJELER ================= */}
         <div className="space-y-5">
 
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-[#3E3A36]">
+          {/* Başlık + Proje Ekle */}
+          <div className="flex items-center justify-between gap-4">
+
+            <h2
+              className="
+                text-2xl
+                font-bold
+                text-[#3E3A36]
+              "
+            >
               {isOwnProfile ? 'Projelerim' : 'Projeleri'}
             </h2>
 
-            {isOwnProfile && (
-              <span className="text-sm text-[#78716C]">
-                {projects.length} proje
-              </span>
+            {/* Sadece kendi profilinde */}
+            {isOwnProfile && projects.length > 0 && (
+              <button
+                onClick={() =>
+                  router.push('/dashboard/projects/add-project')
+                }
+                className="
+                  bg-[#5C5247]
+                  hover:bg-[#3E3A36]
+                  text-white
+                  px-4
+                  py-2
+                  rounded-xl
+                  text-sm
+                  font-semibold
+                  transition
+                  shadow-md
+                  whitespace-nowrap
+                "
+              >
+                + Proje Ekle
+              </button>
             )}
           </div>
 
-          {projects.length > 0 ? (
+          {/* ================= PROJE YOK ================= */}
+          {projects.length === 0 ? (
+
+            <div
+              className="
+                bg-[#F4F1EA]
+                border
+                border-[#E8E2D5]
+                rounded-2xl
+                p-8
+                sm:p-10
+                text-center
+                shadow-sm
+              "
+            >
+
+              <div className="text-5xl mb-4">
+                📁
+              </div>
+
+              <h3
+                className="
+                  text-xl
+                  font-bold
+                  text-[#3E3A36]
+                  mb-2
+                "
+              >
+                Henüz bir projeniz yok.
+              </h3>
+
+              <p
+                className="
+                  text-sm
+                  text-[#78716C]
+                  mb-6
+                  max-w-sm
+                  mx-auto
+                "
+              >
+                Yeni projenizi ekleyerek başlayabilirsiniz.
+              </p>
+
+              {/* Sadece kendi profilinde proje ekleme */}
+              {isOwnProfile && (
+                <button
+                  onClick={() =>
+                    router.push('/dashboard/projects/add-project')
+                  }
+                  className="
+                    inline-flex
+                    items-center
+                    gap-2
+                    bg-[#5C5247]
+                    hover:bg-[#3E3A36]
+                    text-white
+                    px-5
+                    py-2.5
+                    rounded-xl
+                    font-semibold
+                    text-sm
+                    transition
+                    shadow-md
+                  "
+                >
+                  <span className="text-lg">+</span>
+                  Proje Ekle
+                </button>
+              )}
+            </div>
+
+          ) : (
+
+            /* ================= PROJELER VAR ================= */
             <div className="space-y-6">
               {projects.map((project) => (
                 <ProjectCard
@@ -171,18 +354,9 @@ export default function UserProfilePage() {
                 />
               ))}
             </div>
-          ) : (
-            <div className="text-center bg-[#F4F1EA] p-8 rounded-2xl border border-[#E8E2D5]">
-              <p className="text-[#78716C]">
-                {isOwnProfile
-                  ? 'Henüz bir projeniz yok.'
-                  : 'Bu kullanıcının henüz projesi yok.'}
-              </p>
-            </div>
+
           )}
-
         </div>
-
       </div>
     </div>
   )
